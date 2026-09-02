@@ -1,8 +1,11 @@
 const { Router } = require("express");
 const prisma = require("../lib/prisma");
 const httpError = require("../lib/http-error");
+const { requireAuth, optionalAuth } = require("../middleware/auth");
 
 const router = Router();
+
+const STAFF_ROLES = ["SUPPORT", "ADMIN", "FINANCE"];
 
 // Insurance isn't supported yet: insurance_policies rows are created for a
 // specific booking rather than being a browsable catalog like flight_fares
@@ -33,11 +36,14 @@ async function priceItem(tx, item) {
   throw httpError(400, `Item type ${item.itemType} is not supported yet`);
 }
 
-function validateBookingRequest(body) {
-  const { userId, guestEmail, items, travelers = [] } = body;
+// userId is never taken from the request body — it's derived from the
+// verified auth token so a caller can't create bookings under another
+// user's account by just naming their id.
+function validateBookingRequest(body, isAuthenticated) {
+  const { guestEmail, items, travelers = [] } = body;
 
-  if (!userId && !guestEmail) {
-    throw httpError(400, "userId or guestEmail is required");
+  if (!isAuthenticated && !guestEmail) {
+    throw httpError(400, "Sign in, or provide a guestEmail for guest checkout");
   }
   if (!Array.isArray(items) || items.length === 0) {
     throw httpError(400, "items must be a non-empty array");
@@ -57,11 +63,14 @@ function validateBookingRequest(body) {
   }
 }
 
-// POST /bookings
-router.post("/", async (req, res, next) => {
+// POST /bookings — works for a signed-in user (Authorization: Bearer <token>)
+// or a guest checkout (guestEmail in the body); optionalAuth attaches
+// req.user when a valid token is present but never rejects the request.
+router.post("/", optionalAuth, async (req, res, next) => {
   try {
-    validateBookingRequest(req.body);
-    const { userId, guestEmail, currency = "CAD", items, travelers = [] } = req.body;
+    validateBookingRequest(req.body, Boolean(req.user));
+    const { guestEmail, currency = "CAD", items, travelers = [] } = req.body;
+    const userId = req.user ? req.user.id : null;
 
     const booking = await prisma.$transaction(async (tx) => {
       const priced = [];
@@ -77,7 +86,7 @@ router.post("/", async (req, res, next) => {
 
       const created = await tx.booking.create({
         data: {
-          userId: userId ? BigInt(userId) : null,
+          userId,
           guestEmail: userId ? null : guestEmail,
           status: "PENDING",
           totalAmount,
@@ -126,14 +135,40 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-// GET /bookings/:id
-router.get("/:id", async (req, res, next) => {
+// GET /bookings/me — must be registered before /:id, or "me" gets parsed
+// as a booking id.
+router.get("/me", requireAuth, async (req, res, next) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: { userId: req.user.id },
+      include: { items: true, travelers: true },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(bookings);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /bookings/:id — a guest booking (no userId) is viewable by anyone who
+// has the id, matching a typical "manage my booking via confirmation link"
+// guest flow; an account-linked booking is restricted to its owner or staff.
+router.get("/:id", optionalAuth, async (req, res, next) => {
   try {
     const booking = await prisma.booking.findUnique({
       where: { id: BigInt(req.params.id) },
       include: { items: true, travelers: true, payments: true },
     });
     if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+    if (booking.userId !== null) {
+      const isOwner = req.user && req.user.id === booking.userId;
+      const isStaff = req.user && STAFF_ROLES.includes(req.user.role);
+      if (!isOwner && !isStaff) {
+        return res.status(403).json({ error: "You don't have access to this booking" });
+      }
+    }
+
     res.json(booking);
   } catch (err) {
     next(err);

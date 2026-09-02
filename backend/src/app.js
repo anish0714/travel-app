@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 
+const authRouter = require("./routes/auth");
+const usersRouter = require("./routes/users");
 const airportsRouter = require("./routes/airports");
 const airlinesRouter = require("./routes/airlines");
 const hotelsRouter = require("./routes/hotels");
@@ -15,7 +17,20 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.json({
     service: "travel-app-backend",
-    endpoints: ["/health", "/airports", "/airlines", "/hotels", "/hotels/:id", "/flights", "/bookings", "/bookings/:id"],
+    endpoints: [
+      "/health",
+      "/auth/register",
+      "/auth/login",
+      "/users/me",
+      "/airports",
+      "/airlines",
+      "/hotels",
+      "/hotels/:id",
+      "/flights",
+      "/bookings",
+      "/bookings/me",
+      "/bookings/:id",
+    ],
   });
 });
 
@@ -23,6 +38,8 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+app.use("/auth", authRouter);
+app.use("/users", usersRouter);
 app.use("/airports", airportsRouter);
 app.use("/airlines", airlinesRouter);
 app.use("/hotels", hotelsRouter);
