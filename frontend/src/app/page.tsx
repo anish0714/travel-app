@@ -54,7 +54,7 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="mx-auto -mt-20 max-w-3xl px-4">
+      <section className="relative z-10 mx-auto -mt-20 max-w-3xl px-4">
         <div className="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-ink/5">
           <div className="mb-4 flex gap-2 border-b border-ink/10">
             <TabButton active={tab === "flights"} onClick={() => setTab("flights")}>
