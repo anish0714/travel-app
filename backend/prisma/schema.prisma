@@ -1,0 +1,298 @@
+// Schema for the travel-app database — follows the model from the Waypoint
+// blueprint (Sheet 04: Database Design), adapted from MySQL to PostgreSQL.
+// booking_items.reference_id is intentionally polymorphic (resolved in
+// application code via item_type, against flight_fares / hotel_rate_plans /
+// insurance_policies) rather than a single DB-level foreign key.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TRAVELER
+  SUPPORT
+  ADMIN
+  FINANCE
+}
+
+enum LoyaltyTier {
+  NONE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum CabinClass {
+  ECONOMY
+  PREMIUM_ECONOMY
+  BUSINESS
+  FIRST
+}
+
+enum ItemType {
+  FLIGHT
+  HOTEL
+  INSURANCE
+}
+
+enum ItemStatus {
+  HELD
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  AUTHORIZED
+  CAPTURED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  PAYPAL
+  WALLET
+}
+
+enum SupplierType {
+  HOTEL_CHAIN
+  CHANNEL_MANAGER
+  INDEPENDENT
+}
+
+model User {
+  id            BigInt      @id @default(autoincrement())
+  email         String      @unique
+  passwordHash  String?     @map("password_hash")
+  firstName     String      @map("first_name")
+  lastName      String      @map("last_name")
+  phone         String?
+  loyaltyTier   LoyaltyTier @default(NONE) @map("loyalty_tier")
+  loyaltyPoints Int         @default(0) @map("loyalty_points")
+  role          Role        @default(TRAVELER)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  bookings Booking[]
+  reviews  Review[]
+
+  @@map("users")
+}
+
+model Airport {
+  id       Int    @id @default(autoincrement())
+  iataCode String @unique @map("iata_code") @db.Char(3)
+  name     String
+  city     String
+  country  String
+  timezone String
+
+  departingFlights Flight[] @relation("OriginAirport")
+  arrivingFlights  Flight[] @relation("DestinationAirport")
+
+  @@map("airports")
+}
+
+model Airline {
+  id       Int    @id @default(autoincrement())
+  iataCode String @unique @map("iata_code") @db.Char(2)
+  name     String
+
+  flights Flight[]
+  reviews Review[]
+
+  @@map("airlines")
+}
+
+model Flight {
+  id                   BigInt   @id @default(autoincrement())
+  airlineId            Int      @map("airline_id")
+  flightNumber         String   @map("flight_number") @db.VarChar(10)
+  originAirportId      Int      @map("origin_airport_id")
+  destinationAirportId Int      @map("destination_airport_id")
+  departureTime        DateTime @map("departure_time")
+  arrivalTime          DateTime @map("arrival_time")
+  aircraftType         String?  @map("aircraft_type")
+
+  airline     Airline      @relation(fields: [airlineId], references: [id])
+  origin      Airport      @relation("OriginAirport", fields: [originAirportId], references: [id])
+  destination Airport      @relation("DestinationAirport", fields: [destinationAirportId], references: [id])
+  fares       FlightFare[]
+
+  @@index([originAirportId, destinationAirportId, departureTime])
+  @@map("flights")
+}
+
+model FlightFare {
+  id             BigInt     @id @default(autoincrement())
+  flightId       BigInt     @map("flight_id")
+  cabinClass     CabinClass @map("cabin_class")
+  fareCode       String     @map("fare_code") @db.VarChar(20)
+  basePrice      Decimal    @map("base_price") @db.Decimal(10, 2)
+  currency       String     @db.Char(3)
+  seatsAvailable Int        @map("seats_available")
+  refundable     Boolean    @default(false)
+
+  flight Flight @relation(fields: [flightId], references: [id])
+
+  @@map("flight_fares")
+}
+
+model Supplier {
+  id   Int          @id @default(autoincrement())
+  name String
+  type SupplierType
+
+  hotels Hotel[]
+
+  @@map("suppliers")
+}
+
+model Hotel {
+  id         BigInt  @id @default(autoincrement())
+  supplierId Int     @map("supplier_id")
+  name       String  @db.VarChar(200)
+  address    String  @db.VarChar(255)
+  city       String
+  country    String
+  latitude   Decimal @db.Decimal(9, 6)
+  longitude  Decimal @db.Decimal(9, 6)
+  starRating Decimal @map("star_rating") @db.Decimal(2, 1)
+
+  supplier Supplier    @relation(fields: [supplierId], references: [id])
+  rooms    HotelRoom[]
+  reviews  Review[]
+
+  @@map("hotels")
+}
+
+model HotelRoom {
+  id           BigInt  @id @default(autoincrement())
+  hotelId      BigInt  @map("hotel_id")
+  roomType     String  @map("room_type")
+  maxOccupancy Int     @map("max_occupancy")
+  basePrice    Decimal @map("base_price") @db.Decimal(10, 2)
+  currency     String  @db.Char(3)
+
+  hotel     Hotel           @relation(fields: [hotelId], references: [id])
+  ratePlans HotelRatePlan[]
+
+  @@map("hotel_rooms")
+}
+
+model HotelRatePlan {
+  id                   BigInt    @id @default(autoincrement())
+  roomId               BigInt    @map("room_id")
+  rateCode             String    @map("rate_code") @db.VarChar(20)
+  refundable           Boolean
+  cancellationDeadline DateTime? @map("cancellation_deadline")
+  price                Decimal   @db.Decimal(10, 2)
+
+  room HotelRoom @relation(fields: [roomId], references: [id])
+
+  @@map("hotel_rate_plans")
+}
+
+model Booking {
+  id          BigInt        @id @default(autoincrement())
+  userId      BigInt?       @map("user_id")
+  guestEmail  String?       @map("guest_email")
+  status      BookingStatus @default(PENDING)
+  totalAmount Decimal       @map("total_amount") @db.Decimal(10, 2)
+  currency    String        @db.Char(3)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user              User?             @relation(fields: [userId], references: [id])
+  items             BookingItem[]
+  travelers         Traveler[]
+  payments          Payment[]
+  insurancePolicies InsurancePolicy[]
+
+  @@map("bookings")
+}
+
+model BookingItem {
+  id          BigInt     @id @default(autoincrement())
+  bookingId   BigInt     @map("booking_id")
+  itemType    ItemType   @map("item_type")
+  referenceId BigInt     @map("reference_id")
+  quantity    Int        @default(1)
+  unitPrice   Decimal    @map("unit_price") @db.Decimal(10, 2)
+  status      ItemStatus @default(HELD)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([itemType, referenceId])
+  @@map("booking_items")
+}
+
+model Traveler {
+  id             BigInt    @id @default(autoincrement())
+  bookingId      BigInt    @map("booking_id")
+  firstName      String    @map("first_name")
+  lastName       String    @map("last_name")
+  dateOfBirth    DateTime  @map("date_of_birth") @db.Date
+  passportNumber String?   @map("passport_number") @db.VarChar(30)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("travelers")
+}
+
+model Payment {
+  id                   BigInt        @id @default(autoincrement())
+  bookingId            BigInt        @map("booking_id")
+  gatewayTransactionId String        @map("gateway_transaction_id") @db.VarChar(100)
+  amount               Decimal       @db.Decimal(10, 2)
+  currency             String        @db.Char(3)
+  status               PaymentStatus
+  paymentMethod        PaymentMethod @map("payment_method")
+  createdAt            DateTime      @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+model InsurancePolicy {
+  id             BigInt  @id @default(autoincrement())
+  bookingId      BigInt  @map("booking_id")
+  provider       String  @db.VarChar(100)
+  planName       String  @map("plan_name") @db.VarChar(100)
+  coverageAmount Decimal @map("coverage_amount") @db.Decimal(10, 2)
+  premium        Decimal @db.Decimal(10, 2)
+  policyNumber   String  @unique @map("policy_number") @db.VarChar(50)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("insurance_policies")
+}
+
+model Review {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  hotelId   BigInt?  @map("hotel_id")
+  airlineId Int?     @map("airline_id")
+  rating    Int      @db.SmallInt // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User     @relation(fields: [userId], references: [id])
+  hotel   Hotel?   @relation(fields: [hotelId], references: [id])
+  airline Airline? @relation(fields: [airlineId], references: [id])
+
+  @@map("reviews")
+}
