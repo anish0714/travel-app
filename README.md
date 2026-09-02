@@ -1,5 +1,7 @@
 # Waypoint — Travel Booking App
 
+[![CI](https://github.com/anish0714/travel-app/actions/workflows/ci.yml/badge.svg)](https://github.com/anish0714/travel-app/actions/workflows/ci.yml)
+
 A full-stack travel booking platform for flights and hotels across Canada, built as a portfolio project. Real Canadian airports, airlines, and hotels; a booking flow with actual seat-inventory holds; JWT auth with guest checkout.
 
 ## Stack
