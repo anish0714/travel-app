@@ -29,6 +29,11 @@ const suppliers = [
   { name: "Hyatt Hotels Corporation", type: "HOTEL_CHAIN" },
   { name: "Pan Pacific Hotels Group", type: "HOTEL_CHAIN" },
   { name: "Omni Hotels & Resorts", type: "HOTEL_CHAIN" },
+  { name: "InterContinental Hotels Group", type: "HOTEL_CHAIN" },
+  { name: "Accor", type: "HOTEL_CHAIN" },
+  { name: "Best Western Hotels & Resorts", type: "HOTEL_CHAIN" },
+  { name: "Wyndham Hotels & Resorts", type: "HOTEL_CHAIN" },
+  { name: "Choice Hotels International", type: "HOTEL_CHAIN" },
   { name: "Independent", type: "INDEPENDENT" },
 ];
 
@@ -74,6 +79,29 @@ const hotels = [
   // Victoria
   { name: "Fairmont Empress", address: "721 Government St", city: "Victoria", country: "Canada", lat: 48.4235, long: -123.3700, starRating: 5.0, supplierName: "Fairmont Hotels & Resorts" },
   { name: "Delta Hotels Victoria Ocean Pointe", address: "100 Harbour Rd", city: "Victoria", country: "Canada", lat: 48.4212, long: -123.3853, starRating: 4.0, supplierName: "Marriott International" },
+
+  // --- Tier 2: mid-range (~3.5 star) ---
+  { name: "Holiday Inn Toronto Downtown Centre", address: "30 Carlton St", city: "Toronto", country: "Canada", lat: 43.6616, long: -79.3818, starRating: 3.5, supplierName: "InterContinental Hotels Group" },
+  { name: "Holiday Inn Vancouver Centre Broadway", address: "711 W Broadway", city: "Vancouver", country: "Canada", lat: 49.2632, long: -123.1207, starRating: 3.5, supplierName: "InterContinental Hotels Group" },
+  { name: "Novotel Montreal Centre", address: "1180 Rue de la Montagne", city: "Montreal", country: "Canada", lat: 45.4949, long: -73.5734, starRating: 3.5, supplierName: "Accor" },
+  { name: "Holiday Inn Calgary Downtown", address: "1020 8 Ave SW", city: "Calgary", country: "Canada", lat: 51.0470, long: -114.0797, starRating: 3.5, supplierName: "InterContinental Hotels Group" },
+  { name: "Novotel Ottawa City Centre", address: "33 Nicholas St", city: "Ottawa", country: "Canada", lat: 45.4256, long: -75.6892, starRating: 3.5, supplierName: "Accor" },
+  { name: "Hotel Manoir Victoria", address: "44 Côte du Palais", city: "Quebec City", country: "Canada", lat: 46.8129, long: -71.2058, starRating: 3.5, supplierName: "Independent" },
+  { name: "Banff Ptarmigan Inn", address: "337 Banff Ave", city: "Banff", country: "Canada", lat: 51.1774, long: -115.5699, starRating: 3.5, supplierName: "Independent" },
+  { name: "Holiday Inn Halifax Centre", address: "1980 Robie St", city: "Halifax", country: "Canada", lat: 44.6486, long: -63.5934, starRating: 3.5, supplierName: "InterContinental Hotels Group" },
+  { name: "Best Western Plus Winnipeg Airport Hotel", address: "1715 Wellington Ave", city: "Winnipeg", country: "Canada", lat: 49.9028, long: -97.2260, starRating: 3.5, supplierName: "Best Western Hotels & Resorts" },
+  { name: "Chateau Victoria Hotel & Suites", address: "740 Burdett Ave", city: "Victoria", country: "Canada", lat: 48.4171, long: -123.3616, starRating: 3.5, supplierName: "Independent" },
+
+  // --- Tier 3: budget (~2.5 star) ---
+  { name: "Days Inn by Wyndham Toronto Danforth", address: "2403 Danforth Ave", city: "Toronto", country: "Canada", lat: 43.6893, long: -79.3086, starRating: 2.5, supplierName: "Wyndham Hotels & Resorts" },
+  { name: "Days Inn by Wyndham Vancouver Downtown", address: "921 W Pender St", city: "Vancouver", country: "Canada", lat: 49.2839, long: -123.1194, starRating: 2.5, supplierName: "Wyndham Hotels & Resorts" },
+  { name: "Travelodge Hotel Montreal Centre", address: "50 Boulevard René-Lévesque O", city: "Montreal", country: "Canada", lat: 45.5063, long: -73.5629, starRating: 2.5, supplierName: "Wyndham Hotels & Resorts" },
+  { name: "Super 8 by Wyndham Calgary South", address: "4909 Blackfoot Trail SE", city: "Calgary", country: "Canada", lat: 51.0125, long: -114.0338, starRating: 2.5, supplierName: "Wyndham Hotels & Resorts" },
+  { name: "Comfort Inn Ottawa East", address: "1252 Michael St", city: "Ottawa", country: "Canada", lat: 45.4231, long: -75.6083, starRating: 2.5, supplierName: "Choice Hotels International" },
+  { name: "Comfort Inn Quebec", address: "6435 Boulevard Wilfrid-Hamel", city: "Quebec City", country: "Canada", lat: 46.8158, long: -71.3369, starRating: 2.5, supplierName: "Choice Hotels International" },
+  { name: "Comfort Inn Halifax", address: "88 Chain Lake Dr", city: "Halifax", country: "Canada", lat: 44.6395, long: -63.6423, starRating: 2.5, supplierName: "Choice Hotels International" },
+  { name: "Super 8 by Wyndham Winnipeg", address: "3000 Pembina Hwy", city: "Winnipeg", country: "Canada", lat: 49.8145, long: -97.1524, starRating: 2.5, supplierName: "Wyndham Hotels & Resorts" },
+  { name: "Comfort Inn & Suites Downtown Victoria", address: "3020 Blanshard St", city: "Victoria", country: "Canada", lat: 48.4344, long: -123.3654, starRating: 2.5, supplierName: "Choice Hotels International" },
 ];
 
 // Room tiers keyed by star rating, so pricing scales with hotel class
@@ -90,6 +118,14 @@ const ROOM_TIERS = {
   4.0: [
     { roomType: "Standard King", maxOccupancy: 2, basePrice: 249 },
     { roomType: "Deluxe Suite", maxOccupancy: 4, basePrice: 399 },
+  ],
+  3.5: [
+    { roomType: "Standard King", maxOccupancy: 2, basePrice: 169 },
+    { roomType: "Deluxe Suite", maxOccupancy: 4, basePrice: 259 },
+  ],
+  2.5: [
+    { roomType: "Standard King", maxOccupancy: 2, basePrice: 109 },
+    { roomType: "Deluxe Suite", maxOccupancy: 4, basePrice: 159 },
   ],
 };
 
