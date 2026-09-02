@@ -5,25 +5,26 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
+import type { Booking, BookingStatus } from "@/lib/types";
 
-const STATUS_STYLES = {
+const STATUS_STYLES: Record<BookingStatus, string> = {
   PENDING: "bg-amber-100 text-amber-800",
   CONFIRMED: "bg-green-100 text-green-800",
   CANCELLED: "bg-ink/10 text-ink-soft",
   COMPLETED: "bg-blue-100 text-blue-800",
 };
 
-export default function BookingsPage() {
+const BookingsPage = () => {
   const { user, token, loading } = useAuth();
-  const [bookings, setBookings] = useState(null);
-  const [error, setError] = useState(null);
+  const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
     api
-      .get("/bookings/me", token)
+      .get<Booking[]>("/bookings/me", token)
       .then(setBookings)
-      .catch((err) => setError(err.message));
+      .catch((err: Error) => setError(err.message));
   }, [token]);
 
   if (loading) return <p className="mx-auto max-w-3xl px-4 py-8 text-ink-soft">Loading…</p>;
@@ -46,14 +47,16 @@ export default function BookingsPage() {
       <h1 className="mb-6 text-2xl font-bold text-ink">My Trips</h1>
       {error && <p className="text-red-600">{error}</p>}
       {bookings === null && !error && <p className="text-ink-soft">Loading your bookings…</p>}
-      {bookings && bookings.length === 0 && <p className="text-ink-soft">No bookings yet — go search a flight or hotel.</p>}
+      {bookings && bookings.length === 0 && (
+        <p className="text-ink-soft">No bookings yet — go search a flight or hotel.</p>
+      )}
 
       <ul className="flex flex-col gap-3">
         {bookings?.map((booking) => (
           <li key={booking.id}>
             <Link
               href={`/bookings/${booking.id}`}
-              className="flex items-center justify-between rounded-xl border border-ink/10 bg-white p-5 shadow-sm hover:border-blue-300"
+              className="flex items-center justify-between rounded-xl border border-ink/10 bg-white p-5 shadow-sm transition-colors hover:border-route/30"
             >
               <div>
                 <p className="font-medium text-ink">Booking #{booking.id}</p>
@@ -74,4 +77,6 @@ export default function BookingsPage() {
       </ul>
     </div>
   );
-}
+};
+
+export default BookingsPage;

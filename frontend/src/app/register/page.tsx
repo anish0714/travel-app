@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 
-export default function RegisterPage() {
+const RegisterPage = () => {
   const { register } = useAuth();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
@@ -23,11 +23,11 @@ export default function RegisterPage() {
       await register({ firstName, lastName, email, password });
       router.push("/bookings");
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
@@ -72,7 +72,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-route px-4 py-2 text-sm font-medium text-white hover:bg-route-dark disabled:opacity-50"
+          className="rounded-md bg-route px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-route-dark disabled:opacity-50"
         >
           {submitting ? "Creating account…" : "Sign up"}
         </button>
@@ -85,4 +85,6 @@ export default function RegisterPage() {
       </p>
     </div>
   );
-}
+};
+
+export default RegisterPage;

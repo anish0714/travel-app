@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 
-export default function Nav() {
+const Nav = () => {
   const { user, logout, loading } = useAuth();
 
   return (
@@ -54,4 +54,6 @@ export default function Nav() {
       </div>
     </header>
   );
-}
+};
+
+export default Nav;

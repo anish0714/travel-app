@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
+import type { Booking, ItemType } from "@/lib/types";
 
-export default function BookingModal({ itemType, referenceId, label, price, currency = "CAD", onClose }) {
+type BookingModalProps = {
+  itemType: ItemType;
+  referenceId: string;
+  label: string;
+  price: string | number;
+  currency?: string;
+  onClose: () => void;
+};
+
+const BookingModal = ({ itemType, referenceId, label, price, currency = "CAD", onClose }: BookingModalProps) => {
   const { user, token } = useAuth();
   const router = useRouter();
   const [guestEmail, setGuestEmail] = useState("");
@@ -14,14 +24,14 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      const booking = await api.post(
+      const booking = await api.post<Booking>(
         "/bookings",
         {
           ...(user ? {} : { guestEmail }),
@@ -32,11 +42,11 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
       );
       router.push(`/bookings/${booking.id}`);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -98,7 +108,7 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 rounded-md bg-route px-4 py-2 text-sm font-medium text-white hover:bg-route-dark disabled:opacity-50"
+            className="mt-2 rounded-md bg-route px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-route-dark disabled:opacity-50"
           >
             {submitting ? "Booking…" : "Confirm booking"}
           </button>
@@ -106,4 +116,6 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
       </div>
     </div>
   );
-}
+};
+
+export default BookingModal;
