@@ -2,8 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { api } from "@/lib/api";
 import { HOTEL_CITIES } from "@/lib/constants";
+import { seededImage } from "@/lib/images";
+
+const DESTINATIONS = [
+  { city: "Banff", blurb: "Rockies & turquoise lakes", seed: "banff-rockies-lake" },
+  { city: "Quebec City", blurb: "Cobblestone old-world charm", seed: "quebec-city-old-town" },
+  { city: "Vancouver", blurb: "Ocean meets mountains", seed: "vancouver-coast-mountains" },
+  { city: "Toronto", blurb: "Canada's biggest skyline", seed: "toronto-skyline-cn-tower" },
+];
 
 export default function Home() {
   const router = useRouter();
@@ -19,16 +29,27 @@ export default function Home() {
 
   return (
     <div>
-      <section className="bg-zinc-900 py-16 text-white">
-        <div className="mx-auto max-w-3xl px-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Fly and stay, anywhere in Canada</h1>
-          <p className="mt-3 text-zinc-300">Search real routes and real hotels across the country.</p>
+      <section className="relative overflow-hidden">
+        <Image
+          src={seededImage("canada-mountains-lake-hero", 1600, 900)}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-ink/50 to-ink/90" />
+
+        <div className="relative mx-auto max-w-3xl px-4 pb-28 pt-20 text-center text-white sm:pt-28">
+          <p className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">Coast to coast, Canada</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Fly and stay, anywhere in Canada</h1>
+          <p className="mt-3 text-white/80">Search real routes and real hotels across the country.</p>
         </div>
       </section>
 
-      <section className="mx-auto -mt-10 max-w-3xl px-4 pb-16">
-        <div className="rounded-xl bg-white p-6 shadow-lg">
-          <div className="mb-4 flex gap-2 border-b border-zinc-200">
+      <section className="mx-auto -mt-20 max-w-3xl px-4">
+        <div className="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-ink/5">
+          <div className="mb-4 flex gap-2 border-b border-ink/10">
             <TabButton active={tab === "flights"} onClick={() => setTab("flights")}>
               Flights
             </TabButton>
@@ -44,6 +65,33 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-16">
+        <h2 className="text-xl font-bold text-ink">Popular this month</h2>
+        <p className="mt-1 text-sm text-ink-soft">Jump straight to hotels in Canada&apos;s most-booked cities.</p>
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {DESTINATIONS.map((dest) => (
+            <Link
+              key={dest.city}
+              href={`/hotels?${new URLSearchParams({ city: dest.city }).toString()}`}
+              className="group relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm"
+            >
+              <Image
+                src={seededImage(dest.seed, 500, 650)}
+                alt={dest.city}
+                fill
+                sizes="(min-width: 640px) 25vw, 50vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                <p className="font-semibold">{dest.city}</p>
+                <p className="text-xs text-white/80">{dest.blurb}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -53,8 +101,8 @@ function TabButton({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`border-b-2 px-3 py-2 text-sm font-medium ${
-        active ? "border-blue-600 text-blue-600" : "border-transparent text-zinc-500 hover:text-zinc-700"
+      className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+        active ? "border-route text-route" : "border-transparent text-ink-soft hover:text-ink"
       }`}
     >
       {children}
@@ -78,19 +126,19 @@ function FlightSearchForm({ airports, onSearch }) {
       <AirportSelect label="From" value={origin} onChange={setOrigin} airports={airports} />
       <AirportSelect label="To" value={destination} onChange={setDestination} airports={airports} />
       <div className="flex flex-col">
-        <label className="mb-1 text-xs font-medium text-zinc-500">Date</label>
+        <label className="mb-1 text-xs font-medium text-ink-soft">Date</label>
         <input
           type="date"
           required
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-md border border-ink/15 px-3 py-2 text-sm focus:border-route focus:outline-none focus:ring-1 focus:ring-route"
         />
       </div>
       <div className="flex items-end">
         <button
           type="submit"
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="w-full rounded-md bg-route px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-route-dark"
         >
           Search flights
         </button>
@@ -102,12 +150,12 @@ function FlightSearchForm({ airports, onSearch }) {
 function AirportSelect({ label, value, onChange, airports }) {
   return (
     <div className="flex flex-col">
-      <label className="mb-1 text-xs font-medium text-zinc-500">{label}</label>
+      <label className="mb-1 text-xs font-medium text-ink-soft">{label}</label>
       <select
         required
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+        className="rounded-md border border-ink/15 px-3 py-2 text-sm focus:border-route focus:outline-none focus:ring-1 focus:ring-route"
       >
         <option value="" disabled>
           Select airport
@@ -137,12 +185,12 @@ function HotelSearchForm({ onSearch }) {
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <div className="flex flex-col">
-        <label className="mb-1 text-xs font-medium text-zinc-500">City</label>
+        <label className="mb-1 text-xs font-medium text-ink-soft">City</label>
         <select
           required
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-md border border-ink/15 px-3 py-2 text-sm focus:border-route focus:outline-none focus:ring-1 focus:ring-route"
         >
           <option value="" disabled>
             Select city
@@ -155,11 +203,11 @@ function HotelSearchForm({ onSearch }) {
         </select>
       </div>
       <div className="flex flex-col">
-        <label className="mb-1 text-xs font-medium text-zinc-500">Minimum rating</label>
+        <label className="mb-1 text-xs font-medium text-ink-soft">Minimum rating</label>
         <select
           value={minRating}
           onChange={(e) => setMinRating(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-md border border-ink/15 px-3 py-2 text-sm focus:border-route focus:outline-none focus:ring-1 focus:ring-route"
         >
           <option value="">Any</option>
           <option value="2.5">2.5+ stars</option>
@@ -171,7 +219,7 @@ function HotelSearchForm({ onSearch }) {
       <div className="flex items-end">
         <button
           type="submit"
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="w-full rounded-md bg-route px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-route-dark"
         >
           Search hotels
         </button>

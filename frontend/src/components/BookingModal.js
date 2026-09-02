@@ -43,15 +43,15 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Confirm booking</h2>
-            <p className="text-sm text-zinc-500">{label}</p>
+            <h2 className="text-lg font-semibold text-ink">Confirm booking</h2>
+            <p className="text-sm text-ink-soft">{label}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-zinc-400 hover:text-zinc-600" aria-label="Close">
+          <button type="button" onClick={onClose} className="text-ink-soft/70 hover:text-ink-soft" aria-label="Close">
             ✕
           </button>
         </div>
 
-        <p className="mb-4 text-2xl font-bold text-zinc-900">{formatMoney(price, currency)}</p>
+        <p className="mb-4 text-2xl font-bold text-ink">{formatMoney(price, currency)}</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {!user && (
@@ -61,7 +61,7 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
               placeholder="Email address"
               value={guestEmail}
               onChange={(e) => setGuestEmail(e.target.value)}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="rounded-md border border-ink/15 px-3 py-2 text-sm"
             />
           )}
           <div className="flex gap-3">
@@ -71,7 +71,7 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
               placeholder="First name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="flex-1 rounded-md border border-ink/15 px-3 py-2 text-sm"
             />
             <input
               type="text"
@@ -79,17 +79,17 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
               placeholder="Last name"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="flex-1 rounded-md border border-ink/15 px-3 py-2 text-sm"
             />
           </div>
-          <label className="text-xs text-zinc-500">
+          <label className="text-xs text-ink-soft">
             Date of birth
             <input
               type="date"
               required
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 block w-full rounded-md border border-ink/15 px-3 py-2 text-sm"
             />
           </label>
 
@@ -98,7 +98,7 @@ export default function BookingModal({ itemType, referenceId, label, price, curr
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="mt-2 rounded-md bg-route px-4 py-2 text-sm font-medium text-white hover:bg-route-dark disabled:opacity-50"
           >
             {submitting ? "Booking…" : "Confirm booking"}
           </button>
