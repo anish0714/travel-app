@@ -1,13 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f9fb;
+  --foreground: #14243b;
+
+  /* Brand tokens (matches the Waypoint architecture blueprint) */
+  --color-ink: #14243b;
+  --color-ink-soft: #46586e;
+  --color-route: #c8632c;
+  --color-route-dark: #a94f20;
+  --color-signal: #2e7c93;
+  --color-paper: #f7f9fb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-route: var(--color-route);
+  --color-route-dark: var(--color-route-dark);
+  --color-signal: var(--color-signal);
+  --color-paper: var(--color-paper);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -15,5 +29,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
