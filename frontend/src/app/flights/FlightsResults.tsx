@@ -5,23 +5,31 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatTime, formatDateLabel, formatDuration, formatMoney } from "@/lib/format";
 import BookingModal from "@/components/BookingModal";
+import type { Flight } from "@/lib/types";
 
-const AIRLINE_COLORS = {
+const AIRLINE_COLORS: Record<string, string> = {
   AC: "bg-red-50 text-red-700",
   WS: "bg-signal/10 text-signal",
   PD: "bg-violet-50 text-violet-700",
   F8: "bg-route/10 text-route",
 };
 
-export default function FlightsResults() {
+type SelectedFare = {
+  referenceId: string;
+  price: string;
+  currency: string;
+  label: string;
+};
+
+const FlightsResults = () => {
   const params = useSearchParams();
   const origin = params.get("origin");
   const destination = params.get("destination");
   const date = params.get("date");
 
-  const [flights, setFlights] = useState(null);
-  const [error, setError] = useState(null);
-  const [selectedFare, setSelectedFare] = useState(null);
+  const [flights, setFlights] = useState<Flight[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedFare, setSelectedFare] = useState<SelectedFare | null>(null);
 
   useEffect(() => {
     if (!origin || !destination || !date) return;
@@ -29,9 +37,9 @@ export default function FlightsResults() {
     setFlights(null);
     setError(null);
     api
-      .get(`/flights?origin=${origin}&destination=${destination}&date=${date}`)
+      .get<Flight[]>(`/flights?origin=${origin}&destination=${destination}&date=${date}`)
       .then(setFlights)
-      .catch((err) => setError(err.message));
+      .catch((err: Error) => setError(err.message));
   }, [origin, destination, date]);
 
   if (!origin || !destination || !date) {
@@ -140,4 +148,6 @@ export default function FlightsResults() {
       )}
     </div>
   );
-}
+};
+
+export default FlightsResults;

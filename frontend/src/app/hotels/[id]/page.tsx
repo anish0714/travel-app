@@ -7,18 +7,26 @@ import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { seededImage } from "@/lib/images";
 import BookingModal from "@/components/BookingModal";
+import type { HotelDetail } from "@/lib/types";
 
-export default function HotelDetailPage() {
-  const { id } = useParams();
-  const [hotel, setHotel] = useState(null);
-  const [error, setError] = useState(null);
-  const [selectedRatePlan, setSelectedRatePlan] = useState(null);
+type SelectedRatePlan = {
+  referenceId: string;
+  price: string;
+  currency: string;
+  label: string;
+};
+
+const HotelDetailPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const [hotel, setHotel] = useState<HotelDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedRatePlan, setSelectedRatePlan] = useState<SelectedRatePlan | null>(null);
 
   useEffect(() => {
     api
-      .get(`/hotels/${id}`)
+      .get<HotelDetail>(`/hotels/${id}`)
       .then(setHotel)
-      .catch((err) => setError(err.message));
+      .catch((err: Error) => setError(err.message));
   }, [id]);
 
   if (error) return <p className="mx-auto max-w-4xl px-4 py-8 text-red-600">{error}</p>;
@@ -112,4 +120,6 @@ export default function HotelDetailPage() {
       )}
     </div>
   );
-}
+};
+
+export default HotelDetailPage;

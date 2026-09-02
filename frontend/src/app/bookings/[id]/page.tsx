@@ -5,26 +5,27 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
+import type { Booking, BookingStatus } from "@/lib/types";
 
-const STATUS_STYLES = {
+const STATUS_STYLES: Record<BookingStatus, string> = {
   PENDING: "bg-amber-100 text-amber-800",
   CONFIRMED: "bg-green-100 text-green-800",
   CANCELLED: "bg-ink/10 text-ink-soft",
   COMPLETED: "bg-blue-100 text-blue-800",
 };
 
-export default function BookingDetailPage() {
-  const { id } = useParams();
+const BookingDetailPage = () => {
+  const { id } = useParams<{ id: string }>();
   const { token, loading } = useAuth();
-  const [booking, setBooking] = useState(null);
-  const [error, setError] = useState(null);
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
     api
-      .get(`/bookings/${id}`, token)
+      .get<Booking>(`/bookings/${id}`, token)
       .then(setBooking)
-      .catch((err) => setError(err.message));
+      .catch((err: Error) => setError(err.message));
   }, [id, token, loading]);
 
   if (error) return <p className="mx-auto max-w-2xl px-4 py-8 text-red-600">{error}</p>;
@@ -68,4 +69,6 @@ export default function BookingDetailPage() {
       </div>
     </div>
   );
-}
+};
+
+export default BookingDetailPage;

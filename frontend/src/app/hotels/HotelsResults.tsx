@@ -6,14 +6,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { api } from "@/lib/api";
 import { seededImage } from "@/lib/images";
+import type { Hotel } from "@/lib/types";
 
-export default function HotelsResults() {
+const HotelsResults = () => {
   const params = useSearchParams();
   const city = params.get("city");
   const minRating = params.get("minRating");
 
-  const [hotels, setHotels] = useState(null);
-  const [error, setError] = useState(null);
+  const [hotels, setHotels] = useState<Hotel[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!city) return;
@@ -23,9 +24,9 @@ export default function HotelsResults() {
     const query = new URLSearchParams({ city });
     if (minRating) query.set("minRating", minRating);
     api
-      .get(`/hotels?${query.toString()}`)
+      .get<Hotel[]>(`/hotels?${query.toString()}`)
       .then(setHotels)
-      .catch((err) => setError(err.message));
+      .catch((err: Error) => setError(err.message));
   }, [city, minRating]);
 
   if (!city) {
@@ -70,4 +71,6 @@ export default function HotelsResults() {
       </ul>
     </div>
   );
-}
+};
+
+export default HotelsResults;

@@ -1,28 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { api } from "@/lib/api";
 import { HOTEL_CITIES } from "@/lib/constants";
 import { seededImage } from "@/lib/images";
+import type { Airport } from "@/lib/types";
 
-const DESTINATIONS = [
+type Destination = {
+  city: string;
+  blurb: string;
+  seed: string;
+};
+
+const DESTINATIONS: Destination[] = [
   { city: "Banff", blurb: "Rockies & turquoise lakes", seed: "banff-rockies-lake" },
   { city: "Quebec City", blurb: "Cobblestone old-world charm", seed: "quebec-city-old-town" },
   { city: "Vancouver", blurb: "Ocean meets mountains", seed: "vancouver-coast-mountains" },
   { city: "Toronto", blurb: "Canada's biggest skyline", seed: "toronto-skyline-cn-tower" },
 ];
 
-export default function Home() {
+const Home = () => {
   const router = useRouter();
-  const [tab, setTab] = useState("flights");
-  const [airports, setAirports] = useState([]);
+  const [tab, setTab] = useState<"flights" | "hotels">("flights");
+  const [airports, setAirports] = useState<Airport[]>([]);
 
   useEffect(() => {
     api
-      .get("/airports")
+      .get<Airport[]>("/airports")
       .then(setAirports)
       .catch(() => {});
   }, []);
@@ -94,32 +101,41 @@ export default function Home() {
       </section>
     </div>
   );
-}
+};
 
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
-        active ? "border-route text-route" : "border-transparent text-ink-soft hover:text-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
+type TabButtonProps = {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+};
 
-function FlightSearchForm({ airports, onSearch }) {
+const TabButton = ({ active, onClick, children }: TabButtonProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+      active ? "border-route text-route" : "border-transparent text-ink-soft hover:text-ink"
+    }`}
+  >
+    {children}
+  </button>
+);
+
+type FlightSearchFormProps = {
+  airports: Airport[];
+  onSearch: (queryString: string) => void;
+};
+
+const FlightSearchForm = ({ airports, onSearch }: FlightSearchFormProps) => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
 
-  function handleSubmit(e) {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!origin || !destination || !date) return;
     onSearch(new URLSearchParams({ origin, destination, date }).toString());
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -145,42 +161,51 @@ function FlightSearchForm({ airports, onSearch }) {
       </div>
     </form>
   );
-}
+};
 
-function AirportSelect({ label, value, onChange, airports }) {
-  return (
-    <div className="flex flex-col">
-      <label className="mb-1 text-xs font-medium text-ink-soft">{label}</label>
-      <select
-        required
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-ink/15 px-3 py-2 text-sm focus:border-route focus:outline-none focus:ring-1 focus:ring-route"
-      >
-        <option value="" disabled>
-          Select airport
+type AirportSelectProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  airports: Airport[];
+};
+
+const AirportSelect = ({ label, value, onChange, airports }: AirportSelectProps) => (
+  <div className="flex flex-col">
+    <label className="mb-1 text-xs font-medium text-ink-soft">{label}</label>
+    <select
+      required
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded-md border border-ink/15 px-3 py-2 text-sm focus:border-route focus:outline-none focus:ring-1 focus:ring-route"
+    >
+      <option value="" disabled>
+        Select airport
+      </option>
+      {airports.map((a) => (
+        <option key={a.iataCode} value={a.iataCode}>
+          {a.iataCode} — {a.city}
         </option>
-        {airports.map((a) => (
-          <option key={a.iataCode} value={a.iataCode}>
-            {a.iataCode} — {a.city}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
+      ))}
+    </select>
+  </div>
+);
 
-function HotelSearchForm({ onSearch }) {
+type HotelSearchFormProps = {
+  onSearch: (queryString: string) => void;
+};
+
+const HotelSearchForm = ({ onSearch }: HotelSearchFormProps) => {
   const [city, setCity] = useState("");
   const [minRating, setMinRating] = useState("");
 
-  function handleSubmit(e) {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!city) return;
     const params = new URLSearchParams({ city });
     if (minRating) params.set("minRating", minRating);
     onSearch(params.toString());
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -226,4 +251,6 @@ function HotelSearchForm({ onSearch }) {
       </div>
     </form>
   );
-}
+};
+
+export default Home;

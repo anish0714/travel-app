@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 
-export default function LoginPage() {
+const LoginPage = () => {
   const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
@@ -21,11 +21,11 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/bookings");
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
@@ -51,7 +51,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-route px-4 py-2 text-sm font-medium text-white hover:bg-route-dark disabled:opacity-50"
+          className="rounded-md bg-route px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-route-dark disabled:opacity-50"
         >
           {submitting ? "Logging in…" : "Log in"}
         </button>
@@ -64,4 +64,6 @@ export default function LoginPage() {
       </p>
     </div>
   );
-}
+};
+
+export default LoginPage;
