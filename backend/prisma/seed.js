@@ -23,6 +23,13 @@ const airports = [
   { iataCode: "YYT", name: "St. John's International Airport", city: "St. John's", country: "Canada", timezone: "America/St_Johns" },
 ];
 
+const airlines = [
+  { iataCode: "AC", name: "Air Canada" },
+  { iataCode: "WS", name: "WestJet" },
+  { iataCode: "PD", name: "Porter Airlines" },
+  { iataCode: "F8", name: "Flair Airlines" },
+];
+
 const suppliers = [
   { name: "Fairmont Hotels & Resorts", type: "HOTEL_CHAIN" },
   { name: "Marriott International", type: "HOTEL_CHAIN" },
@@ -129,16 +136,198 @@ const ROOM_TIERS = {
   ],
 };
 
+// Realistic domestic route network across the 15 seeded airports, modeled
+// after each carrier's real hub/focus-city pattern: Air Canada (national,
+// YYZ/YUL/YYC), WestJet (Calgary-hub), Porter (YTZ/Eastern Canada), and
+// Flair (ultra-low-cost leisure routes). Flights are generated for the
+// next DAYS_AHEAD days from whenever the seed is run, so search results
+// stay current rather than pinned to a fixed date.
+const DAYS_AHEAD = 7;
+
+const ROUTE_LEGS = [
+  // Air Canada — national network
+  { airline: "AC", flightNumber: "101", origin: "YYZ", destination: "YVR", hour: 8, minute: 0, durationMin: 300 },
+  { airline: "AC", flightNumber: "102", origin: "YVR", destination: "YYZ", hour: 23, minute: 0, durationMin: 285 },
+  { airline: "AC", flightNumber: "103", origin: "YYZ", destination: "YYC", hour: 9, minute: 15, durationMin: 240 },
+  { airline: "AC", flightNumber: "104", origin: "YYC", destination: "YYZ", hour: 13, minute: 0, durationMin: 235 },
+  { airline: "AC", flightNumber: "105", origin: "YYZ", destination: "YUL", hour: 7, minute: 30, durationMin: 70 },
+  { airline: "AC", flightNumber: "106", origin: "YUL", destination: "YYZ", hour: 18, minute: 0, durationMin: 70 },
+  { airline: "AC", flightNumber: "107", origin: "YYZ", destination: "YOW", hour: 7, minute: 0, durationMin: 60 },
+  { airline: "AC", flightNumber: "108", origin: "YOW", destination: "YYZ", hour: 19, minute: 0, durationMin: 60 },
+  { airline: "AC", flightNumber: "109", origin: "YYZ", destination: "YHZ", hour: 10, minute: 0, durationMin: 120 },
+  { airline: "AC", flightNumber: "110", origin: "YHZ", destination: "YYZ", hour: 15, minute: 0, durationMin: 125 },
+  { airline: "AC", flightNumber: "111", origin: "YVR", destination: "YYC", hour: 6, minute: 30, durationMin: 80 },
+  { airline: "AC", flightNumber: "112", origin: "YYC", destination: "YVR", hour: 20, minute: 0, durationMin: 80 },
+  { airline: "AC", flightNumber: "113", origin: "YYZ", destination: "YQB", hour: 8, minute: 45, durationMin: 85 },
+  { airline: "AC", flightNumber: "114", origin: "YQB", destination: "YYZ", hour: 17, minute: 15, durationMin: 85 },
+  { airline: "AC", flightNumber: "115", origin: "YYZ", destination: "YYT", hour: 9, minute: 30, durationMin: 160 },
+  { airline: "AC", flightNumber: "116", origin: "YYT", destination: "YYZ", hour: 14, minute: 0, durationMin: 165 },
+  { airline: "AC", flightNumber: "117", origin: "YYC", destination: "YEG", hour: 7, minute: 15, durationMin: 45 },
+  { airline: "AC", flightNumber: "118", origin: "YEG", destination: "YYC", hour: 18, minute: 45, durationMin: 45 },
+  { airline: "AC", flightNumber: "119", origin: "YYZ", destination: "YXE", hour: 11, minute: 0, durationMin: 210 },
+  { airline: "AC", flightNumber: "120", origin: "YXE", destination: "YYZ", hour: 15, minute: 30, durationMin: 205 },
+  { airline: "AC", flightNumber: "121", origin: "YYZ", destination: "YQR", hour: 12, minute: 15, durationMin: 190 },
+  { airline: "AC", flightNumber: "122", origin: "YOW", destination: "YVR", hour: 8, minute: 0, durationMin: 300 },
+  { airline: "AC", flightNumber: "123", origin: "YVR", destination: "YOW", hour: 21, minute: 0, durationMin: 290 },
+  { airline: "AC", flightNumber: "124", origin: "YYZ", destination: "YFC", hour: 13, minute: 45, durationMin: 110 },
+  { airline: "AC", flightNumber: "125", origin: "YVR", destination: "YYJ", hour: 7, minute: 30, durationMin: 25 },
+  { airline: "AC", flightNumber: "126", origin: "YYJ", destination: "YVR", hour: 19, minute: 0, durationMin: 25 },
+  { airline: "AC", flightNumber: "128", origin: "YFC", destination: "YYZ", hour: 16, minute: 30, durationMin: 110 },
+
+  // WestJet — Calgary-hub network
+  { airline: "WS", flightNumber: "201", origin: "YYC", destination: "YVR", hour: 7, minute: 0, durationMin: 80 },
+  { airline: "WS", flightNumber: "202", origin: "YVR", destination: "YYC", hour: 19, minute: 0, durationMin: 80 },
+  { airline: "WS", flightNumber: "203", origin: "YYC", destination: "YYZ", hour: 6, minute: 45, durationMin: 240 },
+  { airline: "WS", flightNumber: "204", origin: "YYZ", destination: "YYC", hour: 17, minute: 30, durationMin: 235 },
+  { airline: "WS", flightNumber: "205", origin: "YYC", destination: "YEG", hour: 9, minute: 0, durationMin: 45 },
+  { airline: "WS", flightNumber: "206", origin: "YEG", destination: "YYC", hour: 20, minute: 15, durationMin: 45 },
+  { airline: "WS", flightNumber: "207", origin: "YYC", destination: "YWG", hour: 11, minute: 30, durationMin: 110 },
+  { airline: "WS", flightNumber: "208", origin: "YWG", destination: "YYC", hour: 16, minute: 0, durationMin: 105 },
+  { airline: "WS", flightNumber: "209", origin: "YYC", destination: "YHZ", hour: 8, minute: 30, durationMin: 290 },
+  { airline: "WS", flightNumber: "210", origin: "YYC", destination: "YOW", hour: 13, minute: 15, durationMin: 220 },
+  { airline: "WS", flightNumber: "211", origin: "YVR", destination: "YYZ", hour: 7, minute: 15, durationMin: 285 },
+  { airline: "WS", flightNumber: "212", origin: "YYZ", destination: "YVR", hour: 14, minute: 30, durationMin: 300 },
+  { airline: "WS", flightNumber: "213", origin: "YYC", destination: "YQR", hour: 10, minute: 0, durationMin: 70 },
+  { airline: "WS", flightNumber: "214", origin: "YYC", destination: "YXE", hour: 15, minute: 45, durationMin: 75 },
+  { airline: "WS", flightNumber: "215", origin: "YHZ", destination: "YYC", hour: 7, minute: 30, durationMin: 290 },
+  { airline: "WS", flightNumber: "217", origin: "YQR", destination: "YYC", hour: 13, minute: 0, durationMin: 70 },
+  { airline: "WS", flightNumber: "218", origin: "YXE", destination: "YYC", hour: 18, minute: 30, durationMin: 75 },
+
+  // Porter Airlines — Eastern Canada, Billy Bishop-focused
+  { airline: "PD", flightNumber: "301", origin: "YTZ", destination: "YOW", hour: 8, minute: 30, durationMin: 65 },
+  { airline: "PD", flightNumber: "302", origin: "YOW", destination: "YTZ", hour: 17, minute: 45, durationMin: 65 },
+  { airline: "PD", flightNumber: "303", origin: "YTZ", destination: "YUL", hour: 9, minute: 0, durationMin: 65 },
+  { airline: "PD", flightNumber: "304", origin: "YUL", destination: "YTZ", hour: 16, minute: 30, durationMin: 65 },
+  { airline: "PD", flightNumber: "305", origin: "YTZ", destination: "YHZ", hour: 11, minute: 15, durationMin: 120 },
+  { airline: "PD", flightNumber: "306", origin: "YHZ", destination: "YTZ", hour: 18, minute: 30, durationMin: 125 },
+  { airline: "PD", flightNumber: "307", origin: "YTZ", destination: "YQB", hour: 12, minute: 45, durationMin: 90 },
+  { airline: "PD", flightNumber: "308", origin: "YQB", destination: "YTZ", hour: 19, minute: 15, durationMin: 90 },
+  { airline: "PD", flightNumber: "309", origin: "YOW", destination: "YHZ", hour: 14, minute: 0, durationMin: 110 },
+
+  // Flair Airlines — ultra-low-cost leisure routes
+  { airline: "F8", flightNumber: "401", origin: "YYZ", destination: "YWG", hour: 6, minute: 0, durationMin: 140 },
+  { airline: "F8", flightNumber: "402", origin: "YWG", destination: "YYZ", hour: 21, minute: 30, durationMin: 135 },
+  { airline: "F8", flightNumber: "403", origin: "YYZ", destination: "YEG", hour: 7, minute: 45, durationMin: 255 },
+  { airline: "F8", flightNumber: "404", origin: "YEG", destination: "YYZ", hour: 16, minute: 0, durationMin: 250 },
+  { airline: "F8", flightNumber: "405", origin: "YYC", destination: "YWG", hour: 10, minute: 30, durationMin: 110 },
+  { airline: "F8", flightNumber: "406", origin: "YVR", destination: "YWG", hour: 13, minute: 0, durationMin: 165 },
+  { airline: "F8", flightNumber: "407", origin: "YYZ", destination: "YHZ", hour: 19, minute: 0, durationMin: 120 },
+  { airline: "F8", flightNumber: "408", origin: "YWG", destination: "YYC", hour: 14, minute: 30, durationMin: 110 },
+];
+
+const FARE_BASE = { SHORT: 99, MEDIUM: 169, LONG: 249, TRANSCON: 329 };
+
+function tierFor(durationMin) {
+  if (durationMin <= 60) return "SHORT";
+  if (durationMin <= 150) return "MEDIUM";
+  if (durationMin <= 260) return "LONG";
+  return "TRANSCON";
+}
+
+// Fare structure varies by carrier the way it does in the real market:
+// Air Canada and WestJet sell Economy + a premium cabin, Porter sells
+// Economy + its "Reserve" premium-economy product, and ultra-low-cost
+// Flair sells two Economy fare bundles instead of a premium cabin.
+function buildFares(airlineCode, tier) {
+  const eco = FARE_BASE[tier];
+  switch (airlineCode) {
+    case "AC":
+      return [
+        { cabinClass: "ECONOMY", fareCode: "ECOFLEX", basePrice: eco, refundable: false, seatsAvailable: 118 },
+        { cabinClass: "BUSINESS", fareCode: "BIZFLEX", basePrice: Math.round(eco * 2.3), refundable: true, seatsAvailable: 16 },
+      ];
+    case "WS":
+      return [
+        { cabinClass: "ECONOMY", fareCode: "ECOSAVE", basePrice: Math.round(eco * 0.9), refundable: false, seatsAvailable: 140 },
+        { cabinClass: "BUSINESS", fareCode: "PREMIUM", basePrice: Math.round(eco * 2.1), refundable: true, seatsAvailable: 12 },
+      ];
+    case "PD":
+      return [
+        { cabinClass: "ECONOMY", fareCode: "ECONOMY", basePrice: Math.round(eco * 1.05), refundable: false, seatsAvailable: 50 },
+        { cabinClass: "PREMIUM_ECONOMY", fareCode: "RESERVE", basePrice: Math.round(eco * 1.7), refundable: true, seatsAvailable: 12 },
+      ];
+    case "F8":
+      return [
+        { cabinClass: "ECONOMY", fareCode: "BASIC", basePrice: Math.round(eco * 0.6), refundable: false, seatsAvailable: 160 },
+        { cabinClass: "ECONOMY", fareCode: "STANDARD", basePrice: Math.round(eco * 0.85), refundable: true, seatsAvailable: 40 },
+      ];
+    default:
+      return [{ cabinClass: "ECONOMY", fareCode: "ECONOMY", basePrice: eco, refundable: false, seatsAvailable: 100 }];
+  }
+}
+
+function aircraftFor(airlineCode, tier) {
+  if (airlineCode === "F8") return "Boeing 737 MAX 8";
+  if (airlineCode === "PD") return tier === "SHORT" ? "De Havilland Dash 8-400" : "Embraer E195-E2";
+  if (airlineCode === "WS") return tier === "SHORT" ? "De Havilland Dash 8-400" : "Boeing 737-800";
+  if (tier === "TRANSCON") return "Airbus A321neo";
+  if (tier === "LONG") return "Airbus A320";
+  return "Airbus A220-300";
+}
+
+async function seedFlights(airportIdByCode, airlineIdByCode) {
+  const flightRows = [];
+  const legRefs = [];
+  const now = new Date();
+
+  for (const leg of ROUTE_LEGS) {
+    for (let d = 1; d <= DAYS_AHEAD; d++) {
+      const departureTime = new Date(now);
+      departureTime.setDate(departureTime.getDate() + d);
+      departureTime.setHours(leg.hour, leg.minute, 0, 0);
+      const arrivalTime = new Date(departureTime.getTime() + leg.durationMin * 60000);
+      const tier = tierFor(leg.durationMin);
+
+      flightRows.push({
+        airlineId: airlineIdByCode[leg.airline],
+        flightNumber: leg.flightNumber,
+        originAirportId: airportIdByCode[leg.origin],
+        destinationAirportId: airportIdByCode[leg.destination],
+        departureTime,
+        arrivalTime,
+        aircraftType: aircraftFor(leg.airline, tier),
+      });
+      legRefs.push(leg);
+    }
+  }
+
+  const createdFlights = await prisma.flight.createManyAndReturn({ data: flightRows });
+  const flightIdByKey = new Map(
+    createdFlights.map((f) => [`${f.airlineId}|${f.flightNumber}|${f.departureTime.toISOString()}`, f.id])
+  );
+
+  const fareRows = [];
+  flightRows.forEach((row, i) => {
+    const key = `${row.airlineId}|${row.flightNumber}|${row.departureTime.toISOString()}`;
+    const flightId = flightIdByKey.get(key);
+    const leg = legRefs[i];
+    const tier = tierFor(leg.durationMin);
+    for (const fare of buildFares(leg.airline, tier)) {
+      fareRows.push({ flightId, currency: "CAD", ...fare });
+    }
+  });
+
+  await prisma.flightFare.createMany({ data: fareRows });
+  return { flights: createdFlights.length, fares: fareRows.length };
+}
+
 async function main() {
   // Clear previously seeded rows, children before parents, so this script
   // is safe to re-run against a dev database.
+  await prisma.flightFare.deleteMany();
+  await prisma.flight.deleteMany();
   await prisma.hotelRatePlan.deleteMany();
   await prisma.hotelRoom.deleteMany();
   await prisma.hotel.deleteMany();
   await prisma.supplier.deleteMany();
+  await prisma.airline.deleteMany();
   await prisma.airport.deleteMany();
 
-  await prisma.airport.createMany({ data: airports });
+  const createdAirports = await prisma.airport.createManyAndReturn({ data: airports });
+  const airportIdByCode = Object.fromEntries(createdAirports.map((a) => [a.iataCode, a.id]));
+
+  const createdAirlines = await prisma.airline.createManyAndReturn({ data: airlines });
+  const airlineIdByCode = Object.fromEntries(createdAirlines.map((a) => [a.iataCode, a.id]));
 
   const supplierIdByName = {};
   for (const supplier of suppliers) {
@@ -181,7 +370,13 @@ async function main() {
     }
   }
 
-  console.log(`Seeded ${airports.length} airports, ${suppliers.length} suppliers, and ${hotels.length} hotels (with rooms + rate plans).`);
+  const flightSummary = await seedFlights(airportIdByCode, airlineIdByCode);
+
+  console.log(
+    `Seeded ${airports.length} airports, ${airlines.length} airlines, ${suppliers.length} suppliers, ` +
+      `${hotels.length} hotels (with rooms + rate plans), and ${flightSummary.flights} flights ` +
+      `(${flightSummary.fares} fares) over the next ${DAYS_AHEAD} days.`
+  );
 }
 
 main()
