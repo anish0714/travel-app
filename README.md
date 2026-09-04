@@ -61,6 +61,7 @@ Running `npm run db:seed` (in `backend/`) loads:
 - **4 real airlines** — Air Canada, WestJet, Porter Airlines, Flair Airlines
 - **A 61-route domestic network** modeled on each carrier's real focus (AC national, WS Calgary-hub, PD Eastern Canada, F8 ultra-low-cost leisure), generating a rolling 7-day flight schedule with fares
 - **41 real hotels** across 10 cities and 3 rating tiers (Fairmont/luxury, Holiday Inn/mid, Comfort Inn/budget), each with room types and rate plans
+- **3 real insurance providers** — TuGo, Manulife, Allianz Global Assistance — one plan per tier (Basic/Standard/Premium)
 
 ## API reference
 
@@ -74,10 +75,11 @@ Running `npm run db:seed` (in `backend/`) loads:
 | GET | `/hotels?city=&minRating=&maxRating=` | Hotel search |
 | GET | `/hotels/:id` | Hotel detail with rooms + rate plans |
 | GET | `/flights?origin=&destination=&date=` | Flight search with fares |
-| POST | `/bookings` | Create a booking (auth optional — guest checkout via `guestEmail`) |
+| GET | `/insurance-plans?tripCost=` | Insurance catalog (with `tripCost`, includes the actual premium for that trip) |
+| POST | `/bookings` | Create a booking (auth optional — guest checkout via `guestEmail`). Items can mix `FLIGHT`, `HOTEL`, and `INSURANCE` — insurance is priced against the other items' subtotal in the same request |
 | GET | `/bookings/me` | Current user's bookings (auth required) |
 | GET | `/bookings/:id` | Booking detail (owner or staff only for account-linked bookings) |
 
 ## Database schema
 
-16 tables covering users, airports/airlines/flights/flight_fares, suppliers/hotels/hotel_rooms/hotel_rate_plans, bookings/booking_items/travelers, payments, insurance_policies, and reviews. See [backend/prisma/schema.prisma](backend/prisma/schema.prisma).
+17 tables covering users, airports/airlines/flights/flight_fares, suppliers/hotels/hotel_rooms/hotel_rate_plans, bookings/booking_items/travelers, payments, insurance_plans/insurance_policies, and reviews. See [backend/prisma/schema.prisma](backend/prisma/schema.prisma).

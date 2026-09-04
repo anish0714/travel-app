@@ -72,6 +72,12 @@ enum SupplierType {
   INDEPENDENT
 }
 
+enum InsuranceTier {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
 model User {
   id            BigInt      @id @default(autoincrement())
   email         String      @unique
@@ -267,6 +273,28 @@ model Payment {
   @@map("payments")
 }
 
+// The browsable catalog of insurance products offered at checkout.
+// booking_items with item_type = INSURANCE reference this table's id via
+// the same polymorphic reference_id pattern used for flight_fares and
+// hotel_rate_plans — priced against the trip's subtotal at booking time
+// (see backend/src/routes/bookings.js).
+model InsurancePlan {
+  id             BigInt        @id @default(autoincrement())
+  provider       String        @db.VarChar(100)
+  planName       String        @map("plan_name") @db.VarChar(100)
+  tier           InsuranceTier
+  coverageAmount Decimal       @map("coverage_amount") @db.Decimal(10, 2)
+  premiumRate    Decimal       @map("premium_rate") @db.Decimal(5, 4)
+  minimumPremium Decimal       @map("minimum_premium") @db.Decimal(10, 2)
+  description    String        @db.Text
+
+  @@map("insurance_plans")
+}
+
+// The bound policy, issued once a booking's payment actually confirms —
+// distinct from InsurancePlan (the catalog item chosen at checkout), the
+// same way a hotel_rate_plan is a catalog item but a booking is what's
+// actually purchased. Nothing creates these yet since payment isn't built.
 model InsurancePolicy {
   id             BigInt  @id @default(autoincrement())
   bookingId      BigInt  @map("booking_id")

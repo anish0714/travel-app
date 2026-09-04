@@ -136,6 +136,39 @@ const ROOM_TIERS = {
   ],
 };
 
+// Real Canadian travel insurance providers, one plan per tier. premiumRate
+// is applied against a trip's subtotal at booking time (see
+// backend/src/routes/bookings.js), floored at minimumPremium.
+const insurancePlans = [
+  {
+    provider: "TuGo",
+    planName: "TuGo Emergency Medical",
+    tier: "BASIC",
+    coverageAmount: 100000,
+    premiumRate: 0.04,
+    minimumPremium: 19,
+    description: "Emergency medical coverage for unexpected illness or injury while traveling.",
+  },
+  {
+    provider: "Manulife",
+    planName: "Manulife CoverMe Trip Package",
+    tier: "STANDARD",
+    coverageAmount: 2500000,
+    premiumRate: 0.07,
+    minimumPremium: 39,
+    description: "Emergency medical coverage plus trip cancellation and interruption protection.",
+  },
+  {
+    provider: "Allianz Global Assistance",
+    planName: "Allianz All-Inclusive",
+    tier: "PREMIUM",
+    coverageAmount: 5000000,
+    premiumRate: 0.12,
+    minimumPremium: 79,
+    description: "Comprehensive coverage: medical, trip cancellation, baggage, and flight delay protection.",
+  },
+];
+
 // Realistic domestic route network across the 15 seeded airports, modeled
 // after each carrier's real hub/focus-city pattern: Air Canada (national,
 // YYZ/YUL/YYC), WestJet (Calgary-hub), Porter (YTZ/Eastern Canada), and
@@ -322,6 +355,9 @@ async function main() {
   await prisma.supplier.deleteMany();
   await prisma.airline.deleteMany();
   await prisma.airport.deleteMany();
+  await prisma.insurancePlan.deleteMany();
+
+  await prisma.insurancePlan.createMany({ data: insurancePlans });
 
   const createdAirports = await prisma.airport.createManyAndReturn({ data: airports });
   const airportIdByCode = Object.fromEntries(createdAirports.map((a) => [a.iataCode, a.id]));
@@ -374,8 +410,8 @@ async function main() {
 
   console.log(
     `Seeded ${airports.length} airports, ${airlines.length} airlines, ${suppliers.length} suppliers, ` +
-      `${hotels.length} hotels (with rooms + rate plans), and ${flightSummary.flights} flights ` +
-      `(${flightSummary.fares} fares) over the next ${DAYS_AHEAD} days.`
+      `${hotels.length} hotels (with rooms + rate plans), ${insurancePlans.length} insurance plans, and ` +
+      `${flightSummary.flights} flights (${flightSummary.fares} fares) over the next ${DAYS_AHEAD} days.`
   );
 }
 
