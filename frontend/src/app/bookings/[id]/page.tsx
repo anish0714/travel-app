@@ -31,6 +31,9 @@ const BookingDetailPage = () => {
   if (error) return <p className="mx-auto max-w-2xl px-4 py-8 text-red-600">{error}</p>;
   if (!booking) return <p className="mx-auto max-w-2xl px-4 py-8 text-ink-soft">Loading…</p>;
 
+  const subtotal = booking.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
+  const hasDiscount = Number(booking.discountAmount) > 0;
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
@@ -40,10 +43,31 @@ const BookingDetailPage = () => {
         </span>
       </div>
 
+      {booking.loyaltyPointsEarned > 0 && (
+        <div className="mb-4 rounded-lg bg-signal/10 px-4 py-3 text-sm text-signal">
+          You earned <span className="font-semibold">{booking.loyaltyPointsEarned.toLocaleString()}</span> loyalty
+          points on this booking.
+        </div>
+      )}
+
       <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between border-b border-ink/10 pb-4">
-          <p className="text-sm text-ink-soft">Total</p>
-          <p className="text-xl font-bold text-ink">{formatMoney(booking.totalAmount, booking.currency)}</p>
+        <div className="mb-4 border-b border-ink/10 pb-4">
+          {hasDiscount && (
+            <>
+              <div className="flex items-center justify-between text-sm text-ink-soft">
+                <span>Subtotal</span>
+                <span>{formatMoney(subtotal, booking.currency)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-sm text-route">
+                <span>Loyalty discount</span>
+                <span>-{formatMoney(booking.discountAmount, booking.currency)}</span>
+              </div>
+            </>
+          )}
+          <div className="mt-1 flex items-center justify-between">
+            <p className="text-sm text-ink-soft">Total</p>
+            <p className="text-xl font-bold text-ink">{formatMoney(booking.totalAmount, booking.currency)}</p>
+          </div>
         </div>
 
         <h2 className="mb-2 text-sm font-semibold text-ink-soft">Items</h2>

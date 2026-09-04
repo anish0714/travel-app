@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import type { LoyaltyTier } from "@/lib/types";
+
+const TIER_BADGE_STYLES: Partial<Record<LoyaltyTier, string>> = {
+  SILVER: "bg-ink/10 text-ink-soft",
+  GOLD: "bg-amber-100 text-amber-800",
+  PLATINUM: "bg-signal/10 text-signal",
+};
 
 const Nav = () => {
   const { user, logout, loading } = useAuth();
@@ -27,6 +34,14 @@ const Nav = () => {
               <Link href="/bookings" className="text-ink-soft transition-colors hover:text-ink">
                 My Trips
               </Link>
+              {user.loyaltyTier !== "NONE" && (
+                <span
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${TIER_BADGE_STYLES[user.loyaltyTier]}`}
+                  title={`${user.loyaltyPoints.toLocaleString()} points`}
+                >
+                  {user.loyaltyTier} · {user.loyaltyPoints.toLocaleString()} pts
+                </span>
+              )}
               <span className="hidden text-ink-soft sm:inline">Hi, {user.firstName}</span>
               <button
                 type="button"
