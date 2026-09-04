@@ -7,14 +7,13 @@ const router = Router();
 
 const STAFF_ROLES = ["SUPPORT", "ADMIN", "FINANCE"];
 
-// Insurance isn't supported yet: insurance_policies rows are created for a
-// specific booking rather than being a browsable catalog like flight_fares
-// or hotel_rate_plans, and there's no seeded insurance product to price
-// against. Revisit once an insurance catalog exists.
-const SUPPORTED_ITEM_TYPES = ["FLIGHT", "HOTEL"];
+const SUPPORTED_ITEM_TYPES = ["FLIGHT", "HOTEL", "INSURANCE"];
 
-function toNumber(decimal) {
-  return decimal.toNumber();
+// Insurance premiums come back as plain numbers (computed from the trip
+// subtotal), while flight/hotel prices are Prisma Decimal instances read
+// straight from the DB — handle both.
+function toNumber(value) {
+  return typeof value === "number" ? value : value.toNumber();
 }
 
 async function priceItem(tx, item) {
@@ -34,6 +33,42 @@ async function priceItem(tx, item) {
   }
 
   throw httpError(400, `Item type ${item.itemType} is not supported yet`);
+}
+
+// Insurance is priced against the OTHER items in the same booking, so it
+// can only be resolved once the trip subtotal (flights + hotels) is known
+// — unlike flight/hotel prices, which come straight from a catalog row.
+async function priceInsuranceItem(tx, item, tripSubtotal) {
+  if (tripSubtotal <= 0) {
+    throw httpError(400, "Insurance requires at least one flight or hotel item in the same booking");
+  }
+  const plan = await tx.insurancePlan.findUnique({ where: { id: BigInt(item.referenceId) } });
+  if (!plan) throw httpError(400, `Insurance plan ${item.referenceId} not found`);
+
+  const computed = tripSubtotal * plan.premiumRate.toNumber();
+  return Math.max(computed, plan.minimumPremium.toNumber());
+}
+
+// Prices every item in a booking request: flights/hotels first (their
+// catalog price), then insurance against the resulting subtotal. Returns
+// items in their original order with a unitPrice attached.
+async function priceItems(tx, items) {
+  const priced = new Map();
+  let tripSubtotal = 0;
+
+  for (const item of items) {
+    if (item.itemType === "INSURANCE") continue;
+    const unitPrice = await priceItem(tx, item);
+    priced.set(item, unitPrice);
+    tripSubtotal += toNumber(unitPrice) * item.quantity;
+  }
+
+  for (const item of items) {
+    if (item.itemType !== "INSURANCE") continue;
+    priced.set(item, await priceInsuranceItem(tx, item, tripSubtotal));
+  }
+
+  return items.map((item) => ({ ...item, unitPrice: priced.get(item) }));
 }
 
 // userId is never taken from the request body — it's derived from the
@@ -73,11 +108,7 @@ router.post("/", optionalAuth, async (req, res, next) => {
     const userId = req.user ? req.user.id : null;
 
     const booking = await prisma.$transaction(async (tx) => {
-      const priced = [];
-      for (const item of items) {
-        const unitPrice = await priceItem(tx, item);
-        priced.push({ ...item, unitPrice });
-      }
+      const priced = await priceItems(tx, items);
 
       const totalAmount = priced.reduce(
         (sum, item) => sum + toNumber(item.unitPrice) * item.quantity,

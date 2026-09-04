@@ -7,6 +7,7 @@ const airportsRouter = require("./routes/airports");
 const airlinesRouter = require("./routes/airlines");
 const hotelsRouter = require("./routes/hotels");
 const flightsRouter = require("./routes/flights");
+const insurancePlansRouter = require("./routes/insurance-plans");
 const bookingsRouter = require("./routes/bookings");
 
 const app = express();
@@ -27,6 +28,7 @@ app.get("/", (req, res) => {
       "/hotels",
       "/hotels/:id",
       "/flights",
+      "/insurance-plans",
       "/bookings",
       "/bookings/me",
       "/bookings/:id",
@@ -44,6 +46,7 @@ app.use("/airports", airportsRouter);
 app.use("/airlines", airlinesRouter);
 app.use("/hotels", hotelsRouter);
 app.use("/flights", flightsRouter);
+app.use("/insurance-plans", insurancePlansRouter);
 app.use("/bookings", bookingsRouter);
 
 app.use((req, res) => {
