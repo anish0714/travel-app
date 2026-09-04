@@ -23,7 +23,7 @@ const TIER_BADGE_STYLES: Record<string, string> = {
 };
 
 const BookingModal = ({ itemType, referenceId, label, price, currency = "CAD", onClose }: BookingModalProps) => {
-  const { user, token } = useAuth();
+  const { user, token, refreshUser } = useAuth();
   const router = useRouter();
   const [guestEmail, setGuestEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -67,6 +67,7 @@ const BookingModal = ({ itemType, referenceId, label, price, currency = "CAD", o
         },
         token
       );
+      if (booking.loyalty) await refreshUser();
       router.push(`/bookings/${booking.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

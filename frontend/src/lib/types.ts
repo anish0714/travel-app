@@ -139,18 +139,29 @@ export interface Payment {
   createdAt: string;
 }
 
+export interface LoyaltyEarned {
+  pointsEarned: number;
+  totalPoints: number;
+  tier: LoyaltyTier;
+}
+
 export interface Booking {
   id: string;
   userId: string | null;
   guestEmail: string | null;
   status: BookingStatus;
   totalAmount: string;
+  discountAmount: string;
+  loyaltyPointsEarned: number;
   currency: string;
   createdAt: string;
   updatedAt: string;
   items: BookingItem[];
   travelers: Traveler[];
   payments?: Payment[];
+  // Only present on the response from POST /bookings, for a signed-in
+  // traveler who actually earned points on this specific booking.
+  loyalty?: LoyaltyEarned;
 }
 
 export interface InsurancePlan {

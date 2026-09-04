@@ -2,6 +2,7 @@ const { Router } = require("express");
 const prisma = require("../lib/prisma");
 const httpError = require("../lib/http-error");
 const { requireAuth, optionalAuth } = require("../middleware/auth");
+const { tierForPoints, discountRateForTier, pointsForAmount } = require("../lib/loyalty");
 
 const router = Router();
 
@@ -49,10 +50,11 @@ async function priceInsuranceItem(tx, item, tripSubtotal) {
   return Math.max(computed, plan.minimumPremium.toNumber());
 }
 
-// Prices every item in a booking request: flights/hotels first (their
-// catalog price), then insurance against the resulting subtotal. Returns
-// items in their original order with a unitPrice attached.
-async function priceItems(tx, items) {
+// Prices every item, applies the traveler's loyalty discount to the
+// flight/hotel subtotal (never to insurance), then prices insurance
+// against what's actually being paid after that discount. Returns items
+// in their original order plus the discount actually applied.
+async function priceItems(tx, items, discountRate) {
   const priced = new Map();
   let tripSubtotal = 0;
 
@@ -63,12 +65,18 @@ async function priceItems(tx, items) {
     tripSubtotal += toNumber(unitPrice) * item.quantity;
   }
 
+  const discountAmount = Math.round(tripSubtotal * discountRate * 100) / 100;
+  const discountedSubtotal = tripSubtotal - discountAmount;
+
   for (const item of items) {
     if (item.itemType !== "INSURANCE") continue;
-    priced.set(item, await priceInsuranceItem(tx, item, tripSubtotal));
+    priced.set(item, await priceInsuranceItem(tx, item, discountedSubtotal));
   }
 
-  return items.map((item) => ({ ...item, unitPrice: priced.get(item) }));
+  return {
+    items: items.map((item) => ({ ...item, unitPrice: priced.get(item) })),
+    discountAmount,
+  };
 }
 
 // userId is never taken from the request body — it's derived from the
@@ -107,13 +115,23 @@ router.post("/", optionalAuth, async (req, res, next) => {
     const { guestEmail, currency = "CAD", items, travelers = [] } = req.body;
     const userId = req.user ? req.user.id : null;
 
-    const booking = await prisma.$transaction(async (tx) => {
-      const priced = await priceItems(tx, items);
+    const result = await prisma.$transaction(async (tx) => {
+      // Discount is based on the tier the traveler already holds when the
+      // booking starts — earning this booking's points can't retroactively
+      // discount the booking that earned them.
+      let currentUser = null;
+      let discountRate = 0;
+      if (userId) {
+        currentUser = await tx.user.findUnique({ where: { id: userId } });
+        if (!currentUser) throw httpError(401, "User not found");
+        discountRate = discountRateForTier(currentUser.loyaltyTier);
+      }
 
-      const totalAmount = priced.reduce(
-        (sum, item) => sum + toNumber(item.unitPrice) * item.quantity,
-        0
-      );
+      const { items: priced, discountAmount } = await priceItems(tx, items, discountRate);
+
+      const totalAmount =
+        priced.reduce((sum, item) => sum + toNumber(item.unitPrice) * item.quantity, 0) - discountAmount;
+      const pointsEarned = userId ? pointsForAmount(totalAmount) : 0;
 
       const created = await tx.booking.create({
         data: {
@@ -121,6 +139,8 @@ router.post("/", optionalAuth, async (req, res, next) => {
           guestEmail: userId ? null : guestEmail,
           status: "PENDING",
           totalAmount,
+          discountAmount,
+          loyaltyPointsEarned: pointsEarned,
           currency,
           items: {
             create: priced.map((item) => ({
@@ -148,19 +168,27 @@ router.post("/", optionalAuth, async (req, res, next) => {
       // in the schema, so there's nothing to decrement on that side.
       for (const item of priced) {
         if (item.itemType !== "FLIGHT") continue;
-        const result = await tx.flightFare.updateMany({
+        const seatUpdate = await tx.flightFare.updateMany({
           where: { id: BigInt(item.referenceId), seatsAvailable: { gte: item.quantity } },
           data: { seatsAvailable: { decrement: item.quantity } },
         });
-        if (result.count === 0) {
+        if (seatUpdate.count === 0) {
           throw httpError(409, `Seats for fare ${item.referenceId} were taken by another booking`);
         }
       }
 
-      return created;
+      let loyalty;
+      if (userId && pointsEarned > 0) {
+        const totalPoints = currentUser.loyaltyPoints + pointsEarned;
+        const tier = tierForPoints(totalPoints);
+        await tx.user.update({ where: { id: userId }, data: { loyaltyPoints: totalPoints, loyaltyTier: tier } });
+        loyalty = { pointsEarned, totalPoints, tier };
+      }
+
+      return { booking: created, loyalty };
     });
 
-    res.status(201).json(booking);
+    res.status(201).json({ ...result.booking, loyalty: result.loyalty });
   } catch (err) {
     next(err);
   }

@@ -20,6 +20,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -73,7 +74,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ token, user, loading, login, register, logout }}>{children}</AuthContext.Provider>;
+  // Re-fetches the current user — e.g. after a booking earns loyalty
+  // points, so a badge showing tier/points reflects the new balance
+  // without requiring a full page reload.
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    const fresh = await api.get<User>("/users/me", token);
+    setUser(fresh);
+  }, [token]);
+
+  return (
+    <AuthContext.Provider value={{ token, user, loading, login, register, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = (): AuthContextValue => {

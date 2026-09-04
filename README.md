@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/anish0714/travel-app/actions/workflows/ci.yml/badge.svg)](https://github.com/anish0714/travel-app/actions/workflows/ci.yml)
 
-A full-stack travel booking platform for flights and hotels across Canada, built as a portfolio project. Real Canadian airports, airlines, and hotels; a booking flow with actual seat-inventory holds; JWT auth with guest checkout.
+A full-stack travel booking platform for flights and hotels across Canada, built as a portfolio project. Real Canadian airports, airlines, and hotels; a booking flow with actual seat-inventory holds; JWT auth with guest checkout; a loyalty program with real tier discounts.
 
 ## Stack
 
@@ -76,9 +76,22 @@ Running `npm run db:seed` (in `backend/`) loads:
 | GET | `/hotels/:id` | Hotel detail with rooms + rate plans |
 | GET | `/flights?origin=&destination=&date=` | Flight search with fares |
 | GET | `/insurance-plans?tripCost=` | Insurance catalog (with `tripCost`, includes the actual premium for that trip) |
-| POST | `/bookings` | Create a booking (auth optional — guest checkout via `guestEmail`). Items can mix `FLIGHT`, `HOTEL`, and `INSURANCE` — insurance is priced against the other items' subtotal in the same request |
+| POST | `/bookings` | Create a booking (auth optional — guest checkout via `guestEmail`). Items can mix `FLIGHT`, `HOTEL`, and `INSURANCE` — insurance is priced against the other items' subtotal in the same request. For a signed-in traveler, applies their loyalty tier's discount and returns how many points they earned |
 | GET | `/bookings/me` | Current user's bookings (auth required) |
 | GET | `/bookings/:id` | Booking detail (owner or staff only for account-linked bookings) |
+
+## Loyalty program
+
+Every signed-in booking earns 5 points per dollar actually paid. Points accumulate on the user's account and auto-upgrade their tier, which discounts the flight/hotel subtotal (never insurance) on every future booking — applied and recorded automatically inside the booking transaction, no separate step required.
+
+| Tier | Points required | Discount |
+|---|---|---|
+| None | 0 | — |
+| Silver | 1,000 | 3% |
+| Gold | 5,000 | 7% |
+| Platinum | 15,000 | 12% |
+
+See [backend/src/lib/loyalty.js](backend/src/lib/loyalty.js).
 
 ## Database schema
 
