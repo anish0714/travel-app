@@ -11,6 +11,7 @@ export type ItemStatus = "HELD" | "CONFIRMED" | "CANCELLED";
 export type PaymentStatus = "AUTHORIZED" | "CAPTURED" | "REFUNDED" | "FAILED";
 export type PaymentMethod = "CARD" | "PAYPAL" | "WALLET";
 export type SupplierType = "HOTEL_CHAIN" | "CHANNEL_MANAGER" | "INDEPENDENT";
+export type InsuranceTier = "BASIC" | "STANDARD" | "PREMIUM";
 
 export interface User {
   id: string;
@@ -150,6 +151,19 @@ export interface Booking {
   items: BookingItem[];
   travelers: Traveler[];
   payments?: Payment[];
+}
+
+export interface InsurancePlan {
+  id: string;
+  provider: string;
+  planName: string;
+  tier: InsuranceTier;
+  coverageAmount: string;
+  premiumRate: string;
+  minimumPremium: string;
+  description: string;
+  // Only present when GET /insurance-plans is called with ?tripCost=
+  estimatedPremium?: string;
 }
 
 export interface ApiError {
